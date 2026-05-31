@@ -28,9 +28,9 @@ Kasneci et al. (2023) argue that the appropriate response is not to prohibit AI 
 
 **Code Sense** is a self-contained, single-session browser quiz covering NSW Stage 4 Software Engineering content across three sections:
 
-There are two files: V2 - All in one giant HTML file which will run perfectly fine on school PCs. Rename the file to index.html if you want it to run off some form of hosting. You can rename it anything you like as long as it has the correct .html ending.
+### V2 - All in one giant HTML file which will run perfectly fine on school PCs or you can distribute to students. R
 
-V3 is the latest release. I added basic browser security after finding casual/out of subject teachers didn't notice double tabbers and inspectors. The JS is therefore separated from the HTML.
+### V3 is the latest release. I added basic browser security after finding casual/out of subject teachers didn't notice double tabbers and inspectors. The JS is therefore separated from the HTML.
 
 Both versions need a working internet connection for the CSS and some functionality.d 
 
