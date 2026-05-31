@@ -32,7 +32,9 @@ There are two files: V2 - All in one giant HTML file which will run perfectly fi
 
 V3 is the latest release. I added basic browser security after finding casual/out of subject teachers didn't notice double tabbers and inspectors. The JS is therefore separated from the HTML.
 
-Both versions need a working internet connection for the CSS and some functionality.
+Both versions need a working internet connection for the CSS and some functionality.d 
+
+**This is offered entirely 'as is' and unbranded to a large degree. V2 allows you to change the PIN (no hashing). Student email is given light validation (name@education.nsw.gov.au) and no verification. No data is stored. V3 would require reworking the hashing unless you want to use the PIN ID (see V2 code) 🙂 for that.
 
 ## Where does this sit in the new curriculum
 
