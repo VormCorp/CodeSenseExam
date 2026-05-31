@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="banner.png" alt="VormCorp EdTech Banner" width="100%">
+</p>
+
 # Code Sense — Stage 4 Software Engineering Quiz
 
 **A browser-based, anti-cheat Python assessment for NSW Stage 4 students**
