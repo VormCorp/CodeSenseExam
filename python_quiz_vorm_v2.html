@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Sense — Stage 4 Software Engineering</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.5.0/semantic.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+:root {
+  --bg: #1a0e2e; --surface: rgba(255,255,255,0.05); --border: rgba(255,61,127,0.25);
+  --pink: #ff3d7f; --mid: #7c4daa; --light: #f0e6ff;
+  --code-bg: #110828; --code-fg: #e2d0ff;
+  --ok: #21ba45; --bad: #e05252; --warn: #f2ac27;
+  --uni: #4ec96e; --multi: #54b8ff; --rel: #f2ac27; --ext: #ff3d7f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:linear-gradient(160deg,#110828 0%,#2d1b4e 60%,#110828 100%);min-height:100vh;color:var(--light)}
+.screen{display:none}.screen.active{display:block}
+
+/* ── GATE ── */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+.card{background:rgba(255,255,255,0.055);border:1px solid var(--border);border-radius:20px;padding:2.8rem 2.4rem;max-width:430px;width:100%;text-align:center;backdrop-filter:blur(8px);box-shadow:0 8px 48px rgba(0,0,0,0.5)}
+.card img.logo{width:82px;margin-bottom:1.4rem}
+.card h1{font-family:'Space Mono',monospace;font-size:1.35rem;color:#fff;margin-bottom:.3rem}
+.card .sub{color:rgba(240,230,255,.55);font-size:.88rem;margin-bottom:2rem}
+.pin-row{display:flex;gap:.7rem;justify-content:center;margin-bottom:1.4rem}
+.pin-digit{width:56px;height:62px;text-align:center;font-family:'Space Mono',monospace;font-size:1.7rem;font-weight:700;background:rgba(255,255,255,.07);border:2px solid rgba(255,61,127,.35);border-radius:11px;color:#fff;outline:none;transition:border-color .2s,box-shadow .2s;caret-color:var(--pink)}
+.pin-digit:focus{border-color:var(--pink);box-shadow:0 0 14px rgba(255,61,127,.35)}
+.pin-row.shake{animation:shake .38s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.email-in{width:100%;background:rgba(255,255,255,.07);border:2px solid rgba(255,61,127,.35);border-radius:11px;padding:.8rem 1.1rem;font-family:'DM Sans',sans-serif;font-size:.95rem;color:#fff;outline:none;transition:border-color .2s;margin-bottom:.45rem}
+.email-in:focus{border-color:var(--pink)}.email-in.err{border-color:var(--bad)}
+.hint-txt{font-size:.75rem;color:rgba(240,230,255,.45);text-align:left;margin-bottom:1.4rem}
+.hint-txt.err{color:#ff9090}
+.btn-primary{width:100%;background:linear-gradient(135deg,var(--pink),var(--mid));border:none;border-radius:11px;padding:.85rem 1.5rem;color:#fff;font-family:'DM Sans',sans-serif;font-size:.97rem;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;letter-spacing:.4px}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px)}.btn-primary:active{transform:none}
+.privacy{font-size:.72rem;color:rgba(240,230,255,.3);margin-top:1.4rem;line-height:1.6}
+.err-msg{color:#ff8080;font-size:.82rem;margin-top:.55rem;display:none}
+
+/* ── QUIZ SHELL ── */
+#quizScreen{max-width:840px;margin:0 auto;padding:1.4rem 1rem 5rem}
+.qhdr{display:flex;align-items:center;gap:1rem;padding:1rem 0 1.4rem;border-bottom:1px solid rgba(255,61,127,.18);margin-bottom:1.8rem;flex-wrap:wrap}
+.qhdr img{width:44px;flex-shrink:0}
+.qhdr-right{flex:1;min-width:200px}
+.qhdr-title{font-family:'Space Mono',monospace;font-size:.75rem;color:rgba(240,230,255,.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:.5rem}
+.prog-labels{display:flex;justify-content:space-between;font-size:.78rem;color:rgba(240,230,255,.45);margin-bottom:.35rem}
+.prog-outer{height:5px;background:rgba(255,255,255,.09);border-radius:999px;overflow:hidden}
+.prog-inner{height:100%;background:linear-gradient(90deg,var(--pink),var(--mid));border-radius:999px;transition:width .4s ease}
+
+/* Lives + hints bar */
+.status-bar{display:flex;align-items:center;gap:1rem;padding:.6rem 0 1.2rem;flex-wrap:wrap}
+.lives-wrap{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:rgba(240,230,255,.55)}
+.heart{font-size:1rem;transition:transform .2s}
+.heart.lost{filter:grayscale(1);opacity:.3}
+.hint-btn{display:flex;align-items:center;gap:.4rem;background:rgba(255,172,39,.12);border:1px solid rgba(255,172,39,.35);border-radius:8px;padding:.38rem .85rem;color:#f2c44a;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:background .15s,opacity .15s}
+.hint-btn:hover{background:rgba(255,172,39,.2)}.hint-btn:disabled{opacity:.3;cursor:not-allowed}
+.hint-count{background:rgba(255,172,39,.25);border-radius:999px;padding:1px 7px;font-size:.75rem}
+
+/* ── QUESTION CARD ── */
+.qcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.8rem 1.8rem 1.4rem;position:relative}
+.qnum{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--pink);margin-bottom:.4rem}
+.solo-badge{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.9px;text-transform:uppercase;padding:2px 9px;border-radius:999px;margin-bottom:.7rem}
+.solo-uni{background:rgba(78,201,110,.15);color:var(--uni);border:1px solid rgba(78,201,110,.3)}
+.solo-multi{background:rgba(84,184,255,.15);color:var(--multi);border:1px solid rgba(84,184,255,.3)}
+.solo-rel{background:rgba(242,172,39,.15);color:var(--rel);border:1px solid rgba(242,172,39,.3)}
+.solo-ext{background:rgba(255,61,127,.15);color:var(--ext);border:1px solid rgba(255,61,127,.3)}
+.qpts{position:absolute;top:1.2rem;right:1.2rem;font-family:'Space Mono',monospace;font-size:.72rem;color:rgba(240,230,255,.35)}
+.qtxt{font-size:1.05rem;font-weight:500;color:#fff;line-height:1.55;margin-bottom:1.3rem}
+.code{background:var(--code-bg);border:1px solid rgba(255,61,127,.2);border-radius:10px;padding:.9rem 1.1rem;font-family:'Space Mono',monospace;font-size:.84rem;color:var(--code-fg);line-height:1.75;margin-bottom:1.3rem;overflow-x:auto;white-space:pre}
+
+/* hint reveal strip */
+.hint-strip{display:none;background:rgba(242,172,39,.1);border:1px solid rgba(242,172,39,.3);border-radius:9px;padding:.65rem .95rem;font-size:.84rem;color:#ffd77a;margin-bottom:1rem;line-height:1.5}
+.hint-strip.show{display:block}
+
+/* feedback strip */
+.fb{display:none;margin-top:.9rem;padding:.7rem .95rem;border-radius:9px;font-size:.85rem;line-height:1.5;font-weight:500}
+.fb.ok{background:rgba(33,186,69,.12);border:1px solid rgba(33,186,69,.3);color:#a8ffc0}
+.fb.bad{background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.28);color:#ffb3b3}
+.fb.part{background:rgba(242,172,39,.1);border:1px solid rgba(242,172,39,.28);color:#ffe08a}
+
+/* ── CHOICE ── */
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
+@media(max-width:500px){.choices{grid-template-columns:1fr}}
+.ch{background:rgba(255,255,255,.055);border:2px solid rgba(255,255,255,.13);border-radius:11px;padding:.8rem 1rem;cursor:pointer;font-family:'Space Mono',monospace;font-size:.83rem;color:#d8c8f8;transition:border-color .13s,background .13s,transform .1s;line-height:1.45;user-select:none}
+.ch:hover:not(.locked){border-color:var(--pink);background:rgba(255,61,127,.1);transform:translateY(-1px)}
+.ch.sel{border-color:var(--pink);background:rgba(255,61,127,.13)}
+.ch.ok{border-color:var(--ok);background:rgba(33,186,69,.1);color:#b8ffcc}.ch.bad{border-color:var(--bad);background:rgba(224,82,82,.1);color:#ffcaca}.ch.locked{cursor:default;pointer-events:none}
+
+/* ── SELECT ALL ── */
+.sa-list{display:flex;flex-direction:column;gap:.5rem}
+.sa-item{display:flex;align-items:center;gap:.7rem;background:rgba(255,255,255,.055);border:2px solid rgba(255,255,255,.13);border-radius:10px;padding:.7rem .95rem;cursor:pointer;transition:border-color .13s,background .13s;user-select:none}
+.sa-item:hover:not(.locked){border-color:var(--mid);background:rgba(124,77,170,.1)}
+.sa-item.sel{border-color:var(--pink);background:rgba(255,61,127,.1)}
+.sa-item.ok{border-color:var(--ok);background:rgba(33,186,69,.08)}
+.sa-item.bad{border-color:var(--bad);background:rgba(224,82,82,.08)}
+.sa-item.locked{cursor:default;pointer-events:none}
+.cb{width:19px;height:19px;border:2px solid rgba(255,255,255,.28);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;transition:background .13s,border-color .13s}
+.sa-item.sel .cb{background:var(--pink);border-color:var(--pink);color:#fff}
+.sa-item.ok .cb{background:var(--ok);border-color:var(--ok);color:#fff}
+.sa-item.bad .cb{background:var(--bad);border-color:var(--bad);color:#fff}
+.sa-note{font-size:.75rem;color:rgba(240,230,255,.4);margin-bottom:.65rem}
+
+/* ── DRAG ORDER ── */
+.do-note{font-size:.75rem;color:rgba(240,230,255,.4);margin-bottom:.65rem}
+.do-list{display:flex;flex-direction:column;gap:.45rem}
+.do-item{display:flex;align-items:center;gap:.65rem;background:rgba(255,255,255,.065);border:2px solid rgba(255,255,255,.13);border-radius:10px;padding:.7rem .95rem;cursor:grab;font-family:'Space Mono',monospace;font-size:.82rem;color:#d8c8f8;user-select:none;transition:border-color .13s,background .13s;line-height:1.4}
+.do-item:hover{border-color:var(--pink)}.do-item.dragging{opacity:.35;cursor:grabbing}
+.do-item.over{border-color:var(--pink);background:rgba(255,61,127,.1);box-shadow:0 0 10px rgba(255,61,127,.25)}
+.do-item.ok{border-color:var(--ok);background:rgba(33,186,69,.08);cursor:default;pointer-events:none}
+.do-item.bad{border-color:var(--bad);background:rgba(224,82,82,.08);cursor:default;pointer-events:none}
+.do-handle{color:rgba(240,230,255,.28);font-size:.95rem}
+.do-idx{font-size:.68rem;color:rgba(240,230,255,.28);min-width:16px;text-align:center}
+.do-label{display:inline-block;background:rgba(255,61,127,.2);color:#ff9cc0;border-radius:5px;padding:1px 6px;font-size:.72rem;margin-right:.4rem;font-weight:700}
+
+/* ── MATCH ── */
+.match-wrap{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media(max-width:500px){.match-wrap{grid-template-columns:1fr}}
+.match-col-hdr{font-size:.7rem;text-transform:uppercase;letter-spacing:.9px;color:rgba(240,230,255,.38);margin-bottom:.45rem}
+.match-src-list,.match-tgt-list{display:flex;flex-direction:column;gap:.4rem;min-height:40px}
+.msrc{background:rgba(255,255,255,.065);border:2px solid rgba(255,255,255,.13);border-radius:9px;padding:.55rem .85rem;font-family:'Space Mono',monospace;font-size:.8rem;color:#d8c8f8;cursor:grab;user-select:none;transition:border-color .13s;min-height:36px;display:flex;align-items:center}
+.msrc:hover{border-color:var(--pink)}.msrc.dragging{opacity:.3}
+.msrc.in-slot{cursor:pointer;font-size:.78rem}.msrc.in-slot:hover{border-color:var(--warn)}
+.mtgt{background:rgba(255,255,255,.025);border:2px dashed rgba(255,255,255,.18);border-radius:9px;padding:.35rem .6rem;min-height:44px;transition:border-color .13s,background .13s;position:relative}
+.mtgt.over{border-color:var(--pink);background:rgba(255,61,127,.07);border-style:solid}
+.mtgt.filled{border-style:solid;border-color:rgba(255,255,255,.22)}
+.mtgt.ok{border-color:var(--ok);background:rgba(33,186,69,.07);border-style:solid}
+.mtgt.bad{border-color:var(--bad);background:rgba(224,82,82,.07);border-style:solid}
+.mtgt-lbl{font-family:'Space Mono',monospace;font-size:.75rem;color:rgba(240,230,255,.4);padding:.25rem .4rem .1rem;display:block}
+.mtgt-drop{min-height:28px;padding:.1rem .2rem}
+.match-note{font-size:.75rem;color:rgba(240,230,255,.4);margin-bottom:.65rem}
+
+/* ── HOTSPOT ── */
+.hs-note{font-size:.75rem;color:rgba(240,230,255,.4);margin-bottom:.55rem}
+.hs-code{background:var(--code-bg);border:1px solid rgba(255,61,127,.2);border-radius:10px;overflow:hidden}
+.hs-line{display:flex;align-items:center;gap:.7rem;padding:.38rem 1rem;cursor:pointer;font-family:'Space Mono',monospace;font-size:.84rem;color:var(--code-fg);line-height:1.65;transition:background .1s;border-left:3px solid transparent}
+.hs-line:hover:not(.locked){background:rgba(255,61,127,.1)}
+.hs-line.sel{background:rgba(255,61,127,.15);border-left-color:var(--pink)}
+.hs-line.ok{background:rgba(33,186,69,.12);border-left-color:var(--ok)}
+.hs-line.bad{background:rgba(224,82,82,.12);border-left-color:var(--bad)}
+.hs-line.locked{cursor:default}.hs-lnum{color:rgba(240,230,255,.22);font-size:.72rem;min-width:16px}
+
+/* ── NAV ── */
+.qnav{display:flex;align-items:center;justify-content:space-between;margin-top:1.4rem;flex-wrap:wrap;gap:.6rem}
+.btn-nav{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);color:rgba(240,230,255,.75);border-radius:9px;padding:.6rem 1.3rem;font-family:'DM Sans',sans-serif;font-size:.88rem;cursor:pointer;transition:background .13s;font-weight:500}
+.btn-nav:hover{background:rgba(255,255,255,.13)}.btn-nav:disabled{opacity:.28;cursor:not-allowed}
+.btn-check{background:linear-gradient(135deg,var(--pink),var(--mid));border:none;color:#fff;border-radius:9px;padding:.6rem 1.5rem;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .13s}
+.btn-check:hover{opacity:.87}.btn-check:disabled{opacity:.3;cursor:not-allowed}
+.btn-next{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);color:rgba(240,230,255,.75);border-radius:9px;padding:.6rem 1.3rem;font-family:'DM Sans',sans-serif;font-size:.88rem;cursor:pointer;transition:background .13s;display:none}
+.btn-next:hover{background:rgba(255,255,255,.13)}
+.btn-submit{background:linear-gradient(135deg,#f2ac27,#e06820);border:none;color:#fff;border-radius:9px;padding:.6rem 1.6rem;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .13s;display:none}
+.btn-submit:hover{opacity:.87}.btn-submit.vis{display:inline-block}
+
+/* ── RESULTS ── */
+#resultsScreen{min-height:100vh;align-items:center;justify-content:center;padding:2rem}
+.res-card{background:rgba(255,255,255,.055);border:1px solid var(--border);border-radius:20px;padding:2.8rem 2.2rem;max-width:500px;width:100%;text-align:center}
+.score-ring{width:138px;height:138px;margin:0 auto 1.4rem;position:relative}
+.score-ring svg{transform:rotate(-90deg)}
+.score-inner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.score-num{font-family:'Space Mono',monospace;font-size:1.9rem;font-weight:700;color:#fff;display:block}
+.score-max{font-size:.8rem;color:rgba(240,230,255,.45);display:block;margin-top:-3px}
+.band-lbl{font-size:1.1rem;font-weight:600;color:var(--pink);margin-bottom:.3rem}
+.band-desc{font-size:.86rem;color:rgba(240,230,255,.55);margin-bottom:1.8rem;line-height:1.5}
+
+/* ── COMPLETION OVERLAY ── */
+#confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:600;width:100%;height:100%}
+.completion-modal{
+  position:relative;background:linear-gradient(160deg,#1a0e2e,#2d1b4e);
+  border:2px solid var(--pink);border-radius:24px;padding:0;
+  max-width:480px;width:100%;overflow:hidden;
+  box-shadow:0 0 80px rgba(255,61,127,.35),0 20px 60px rgba(0,0,0,.6);
+  animation:popIn .5s cubic-bezier(.175,.885,.32,1.275) both;
+}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.completion-inner{padding:2.5rem 2rem 2rem;text-align:center;position:relative;z-index:2}
+.completion-logo-wrap{margin-bottom:.5rem}
+.completion-sparkle{font-size:2.8rem;display:block;margin-bottom:.2rem;animation:sparkSpin 2s ease-in-out infinite}
+@keyframes sparkSpin{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.2) rotate(15deg)}}
+.completion-title{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;color:#fff;margin-bottom:.3rem}
+.completion-sub{color:rgba(240,230,255,.55);font-size:.9rem;margin-bottom:1.2rem}
+.completion-score-wrap{display:inline-flex;align-items:baseline;gap:.4rem;background:rgba(255,61,127,.15);border:1px solid rgba(255,61,127,.3);border-radius:16px;padding:.6rem 1.4rem;margin-bottom:.6rem}
+.completion-score-num{font-family:'Space Mono',monospace;font-size:3rem;font-weight:700;color:#fff;line-height:1}
+.completion-score-max{font-family:'Space Mono',monospace;font-size:1.1rem;color:rgba(240,230,255,.5)}
+.completion-band{font-size:1rem;font-weight:600;color:var(--pink);margin-bottom:1.2rem;min-height:1.4rem}
+.completion-divider{height:1px;background:rgba(255,61,127,.2);margin-bottom:1.4rem}
+.completion-submit-btn{
+  width:100%;background:linear-gradient(135deg,#f2ac27,#e06820);
+  border:none;border-radius:12px;padding:1rem 1.5rem;
+  color:#fff;font-family:'DM Sans',sans-serif;font-size:1.05rem;font-weight:700;
+  cursor:pointer;transition:transform .15s,opacity .15s;
+  box-shadow:0 4px 20px rgba(242,172,39,.35);
+  letter-spacing:.3px;margin-bottom:1rem;
+}
+.completion-submit-btn:hover{transform:translateY(-2px);opacity:.92}
+.completion-note{font-size:.82rem;color:rgba(240,230,255,.55);line-height:1.6;padding:0 .5rem}
+.completion-note strong{color:#f2c44a}
+
+/* ── SECTION BACKGROUNDS ── */
+.section-a { background: linear-gradient(160deg,#110828 0%,#2d1b4e 60%,#110828 100%); }
+.section-b { background: linear-gradient(160deg,#062020 0%,#0e3a2e 60%,#062020 100%); }
+.section-c { background: linear-gradient(160deg,#1e1400 0%,#3a2a06 60%,#1e1400 100%); }
+
+/* ── SECTION BANNER ── */
+.section-banner {
+  position:fixed; top:0; left:0; right:0; z-index:500;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:2rem; text-align:center;
+  pointer-events:none;
+  opacity:0; transition:opacity .4s ease;
+  background:rgba(0,0,0,.75); min-height:100vh;
+}
+.section-banner.show { opacity:1; pointer-events:all; }
+.section-banner.hide { opacity:0; pointer-events:none; }
+.sb-eyebrow { font-family:'Space Mono',monospace; font-size:.75rem; letter-spacing:2px; text-transform:uppercase; margin-bottom:.5rem; }
+.sb-title { font-family:'Space Mono',monospace; font-size:1.6rem; font-weight:700; color:#fff; margin-bottom:.6rem; }
+.sb-desc { font-size:.95rem; color:rgba(240,230,255,.7); max-width:460px; line-height:1.6; margin-bottom:1.5rem; }
+.sb-btn { background:linear-gradient(135deg,var(--pink),var(--mid)); border:none; border-radius:10px; padding:.7rem 1.8rem; color:#fff; font-family:'DM Sans',sans-serif; font-size:.95rem; font-weight:600; cursor:pointer; pointer-events:all; }
+.section-b .sb-eyebrow { color:#4ec9b0; }
+.section-c .sb-eyebrow { color:#f2c44a; }
+
+/* ── WARN OVERLAY ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.omodal{background:#1a0e2e;border:2px solid var(--pink);border-radius:15px;padding:1.8rem;max-width:360px;text-align:center}
+.omodal h3{font-family:'Space Mono',monospace;color:#fff;margin-bottom:.65rem;font-size:1rem}
+.omodal p{color:rgba(240,230,255,.65);font-size:.87rem;margin-bottom:1.4rem;line-height:1.5}
+.omodal-btns{display:flex;gap:.6rem;justify-content:center}
+</style>
+</head>
+<body>
+
+<!-- LEAVE WARNING -->
+<div class="overlay" id="warnOverlay">
+  <div class="omodal">
+    <h3>⚠️ Leave Quiz?</h3>
+    <p>If you refresh or close this page your progress will be lost and you will need to start again.</p>
+    <div class="omodal-btns"><button class="btn-nav" onclick="document.getElementById('warnOverlay').classList.remove('show')">Stay Here</button></div>
+  </div>
+</div>
+
+<!-- PIN SCREEN -->
+<div id="pinScreen" class="screen active">
+  <div class="gate">
+    <div class="card">
+      <img src="data:image/png;base64,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" alt="Vorm" class="logo">
+      <h1>Code Sense</h1>
+      <p class="sub">Stage 4 Software Engineering</p>
+      <div class="pin-row" id="pinRow">
+        <input class="pin-digit" type="password" maxlength="1" inputmode="numeric">
+        <input class="pin-digit" type="password" maxlength="1" inputmode="numeric">
+        <input class="pin-digit" type="password" maxlength="1" inputmode="numeric">
+        <input class="pin-digit" type="password" maxlength="1" inputmode="numeric">
+      </div>
+      <button class="btn-primary" onclick="checkPin()">Enter</button>
+      <p class="err-msg" id="pinErr">Incorrect code — please try again.</p>
+      <p class="privacy">🔒 No data is stored. This quiz runs entirely in your browser.</p>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL SCREEN -->
+<div id="emailScreen" class="screen">
+  <div class="gate">
+    <div class="card">
+      <img src="data:image/png;base64,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" alt="Vorm" class="logo">
+      <h1>Almost there!</h1>
+      <p class="sub">Enter your school email to begin</p>
+      <input class="email-in" type="email" id="emailIn" placeholder="yourname@education.nsw.gov.au" autocomplete="off">
+      <p class="hint-txt" id="emailHint">Must end in @education.nsw.gov.au</p>
+      <button class="btn-primary" onclick="checkEmail()">Start Quiz →</button>
+      <p class="privacy">Your email only appears on your results PDF. It is never sent anywhere and disappears when you close this page.</p>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ SCREEN -->
+<div id="quizScreen" class="screen">
+  <div id="quizInner">
+    <div class="qhdr">
+      <img src="data:image/png;base64,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" alt="Vorm">
+      <div class="qhdr-right">
+        <div class="qhdr-title">Code Sense — Stage 4 Software Engineering</div>
+        <div class="prog-labels"><span id="progLbl">Question 1 of 20</span><span id="scoreLbl">0 / 50 pts</span></div>
+        <div class="prog-outer"><div class="prog-inner" id="progBar" style="width:5%"></div></div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="lives-wrap">
+        <span>Lives:</span>
+        <span class="heart" id="h1">❤️</span>
+        <span class="heart" id="h2">❤️</span>
+        <span class="heart" id="h3">❤️</span>
+      </div>
+      <button class="hint-btn" id="hintBtn" onclick="useHint()">
+        💡 Use Hint <span class="hint-count" id="hintCount">3</span>
+      </button>
+    </div>
+    <div id="qArea"></div>
+    <div class="qnav">
+      <button class="btn-nav" id="btnBack" onclick="goBack()" disabled>← Back</button>
+      <div style="display:flex;gap:.55rem;align-items:center;flex-wrap:wrap">
+        <button class="btn-submit" id="btnSubmit" onclick="confirmSubmit()">Submit Quiz</button>
+        <button class="btn-check" id="btnCheck" onclick="checkAnswer()" disabled>Check Answer</button>
+        <button class="btn-next" id="btnNext" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="resultsScreen" class="screen" style="display:none">
+  <div class="res-card">
+    <img src="data:image/png;base64,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" alt="Vorm" style="width:68px;margin-bottom:1.2rem">
+    <div class="score-ring">
+      <svg width="138" height="138" viewBox="0 0 138 138">
+        <circle cx="69" cy="69" r="57" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="11"/>
+        <circle cx="69" cy="69" r="57" fill="none" stroke="url(#rg)" stroke-width="11" stroke-linecap="round"
+          id="scoreArc" stroke-dasharray="358" stroke-dashoffset="358"/>
+        <defs><linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ff3d7f"/><stop offset="100%" stop-color="#7c4daa"/>
+        </linearGradient></defs>
+      </svg>
+      <div class="score-inner"><span class="score-num" id="finalScore">0</span><span class="score-max">/ 100</span></div>
+    </div>
+    <div class="band-lbl" id="bandLbl"></div>
+    <div class="band-desc" id="bandDesc"></div>
+    <button class="btn-primary" onclick="downloadPDF()">⬇ Download My Results PDF</button>
+    <p class="completion-note" style="margin-top:1rem;font-size:.88rem;color:rgba(240,230,255,.7);line-height:1.6">After downloading your results, you need to <strong style="color:#f2c44a">UPLOAD the PDF to Google Classroom.</strong></p>
+    <p class="privacy" style="margin-top:.6rem">The PDF is built in your browser and downloaded directly. Nothing is sent to any server.</p>
+  </div>
+</div>
+
+<!-- COMPLETION OVERLAY -->
+<div class="overlay" id="completionOverlay">
+  <div class="completion-modal">
+    <canvas id="confettiCanvas"></canvas>
+    <div class="completion-inner">
+      <div class="completion-logo-wrap">
+        <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABkAFwDASIAAhEBAxEB/8QAHAAAAQUBAQEAAAAAAAAAAAAABQABAgQGAwcI/8QANhAAAQMDAwMCBQAJBQEAAAAAAQIDBAAFEQYhMRJBURNhFCJxgbEHFSMyQkNSkaEzYnLB0fD/xAAaAQACAwEBAAAAAAAAAAAAAAAABAMFBgIB/8QAMhEAAQMDAwIDCAEEAwAAAAAAAQIDEQAEIQUxQRJRBmFxExQigZGhsfDRFSMywULh8f/aAAwDAQACEQMRAD8A+aaeoipCtbU1KnFMcAZJwKchSSApKkkjICgRkfeiinFSFH9N6WeusUTHpBjMKJDeE9Sl4777AVV1HY37K+2FuB5h3PpuAYORyCOxpVN4wp0shXxVbu6FqDVmL5bRDRjONjsYmYPBihdSqcIxkyUOTGnnYqT+1Dex489t8VdtlvizY0+QueiJ8OCpptzBKhuRn8bd6lW6lvKtv5xSVvZuXJCWyCTOJg4EzmBG8Z3BxQ+lUQcjOCNsn2+tSqWlQaQp6anooqqKfIG5OBURRrR0m3Rb4l65hIa9MhtaxlKF7YJ+2Rmo3lltBUBMcU1ZW6bm4QypYQFECTsPM1LQ6Yb2pGEyuhSelRaCuC4OPvjOK2WvW4qtNvrkBPqIx6BPPXnYD/7ishrB6BcL62bQj1SUBKiyn/UXnbGOSB3/APKoOCS5cWI14flMgKCVqfJKm0nuAfzVWu2Ny63cklMCennH8+la631VOl2dzpSWw4FKKQ4MJJIAzxjcZ/E1sNF3+3ptDMCXIRGeYHSPUOAtPYg8fahuvr1EuCGYcFwPJaUXFup4zjAAPfk/4oTIFpgXxaW0/rWAlOwK8ZUR5HOP+/ahgrtjT2fePeBOc57n70vqHiW9Om/0tZSY+EkSTCYjP+Oe4mYMgc+uWlqEm0sNw0NmKpsdIABChjv5968tuoiIuspMUo+HS8oNYO2M9vauaJEhtlTDch5DSv3m0uEJP2rSaGnWeGzKTPUy0+pQKVuDYoxwPvnb3qNq2Xp4ceBK54+e/NN3mrM+JVW9kUpYCZlR222G0DGxPbtnvo+82eBZ3GJiktPdalLygq9UHjGOdtsVlHltqecU2kNoKyUoz+6Cdh/aut1cjuXCU7DT0RlOEtDGMD2HbucV6dbrfbm7W3HYYaXHU2OUg9YI5PnND7zenn23SSXNxO37NGnWF14kQLHrQlNsCAQMqkwOdjEzjuQSa8rpCu9ybZZuUpmMrqYQ6pLZznYHz/iuFW6VdQBHNYhxstrKDuCR9KqHODg4NE7i/aH7fBbtsN1uWkYkK59Q44/3HO9Dm1FK0rABKVBQBGRkHO48Vp9Gz2JGrnJdwDDbz7ZDPSnpQlewwPBIH581BdKKE+0gnpBODv8Av2qz0lpNw6LUqCfaEJkpBgTMgzgyAI5ncUPsMpyw3xmTOhPpBQpJSpBSrBx8yc88V21heWLzOZcjMrQ2ygpCljClZOePAxWp/SM7ETYfSeKTIU4ksJ/iBzufpjOawMSNImPhiIyp50gqCE4zgcnek7NTd1F2tPSoSN8R3+9XWutXOklWisue0bUQqAPintic4B+lcRUq6tw5bjJeRGdU2HQySB/M/p8k1YmWm5ww18VCda9VQSgnBBUeBsdj9asS6gGOoT61lhaXBQVhtUDmDGds+dU6cVdk2e7RWFPyLc+20gZUsgEJHk4NMu1XNt1lpcF5Lj+fSTtleBk438b14HmjkKH1FdqsLtJhTSgcf8TyYHHJwO5wK6vv2k2OOw1GWi5Bf7R48KG+e+/bbtV/TtvvdyiLaiT3IsEEpOVnpJ7hIG/4FC+uXbfi4LsdDa3kBDqXUAqSORg9ufxWy0Hc4irSiAt1Dchkq+VRx1AkkEeear75xbNuVNjqzMnO/P8AoVp/Dttb3+pIZul+zhBBA+CSDHSSMkkZVsSRHFZW+WWZZ3EJkdC217IcRwSO2OxodWy/SDcojsRq3suIde9QOL6TnoAB59zmsbTFg848wFuiD+5qq8SWNrYaiti0VKBHMweRPMf9HIqoK1Ng0c7coCJkuUYyHR1NISgKUU9ic8fSsqRlJB716TpfUtsdtLDMqU1GkMthC0uHpBwMZBPINR6o9cNNAsDM5xNPeEbLTLy8UjUCIjAJgE+uNhxOflWL1DZ5NmnBmQ56yVp6mnt/mA5BzwR4rjZZvwN1iTUk9LbgKsd0nZX+CaL64vka5T4whFLjMTKvUUn5VqJHbunb75obembh6ybjOhJjJmfM30JASdhwO22+9SW61uMpS+IKgZ4+3pnypPUmGLW/dc05RUhtSSCBIHn1dgrAnfv31My4Wu23+3stPoXFL70p5aVBSULWCE5x4yfpUJjrUG3So8q4MSXZtxS6wEOdfSjrScnwAB9KxIAA2AH0pBKRnAAzzgVENNSOn4jjfzgz8t/pTi/FTqg4A0AFTGTCQUhJEc4GJ2JJztW/vNwiLZvvwLkdEwspT6inuoPI6f4RnGR8w274rq7d4SULV6rCnYYa+GV1j+YkJOPON8+K89ATgbDbinAHgVwNJbgAqOP4A/A+U1OrxnclalhsAmfTdSgYjcFQM7kpBOaMawdbd1HLdaWlxB6MKQQQflHBo7F0Q25ASqVMcTKUOrCUgoQfGO9ZeDarhOjuOw4bjzSNlKTgb+B5P0rQxNbPtQEtPQg9ISnpDnXhKsdyOQfNc3SbhLaG7RUlODtO2K60h3S3bp661lshLsqRhXTkkqiN9xB/BisxJYVEkuxXQlLjSyhQHBI8VGiSzc24EmfIitrZuRwp9aATnJOU/wBPt9BQyrNtZUMx8u/P3rK3TKWlDpBAOQCIIBJ6fWRBkYzVQUZ0faGrzdlR5C1JYab9RYScFW+AM9qCirdsnyrbNRMhudDqQRuMhQPII8UXCXFNKDZhUYrvTnbdq7bXcp6mwRI7j9452rWa00zb4VqVPgNlgtFIcb6iUrSTjv33oHbY921G83AErrbjN5SXT8rY4HG5ParEq63rVT7NtQ2ygE9fpoyEnH8Siew8ecVzH630jdQSGSp1v3U26kH7EEH8+9VrAebZ9ktQLuSJzH7n/wArUaguxub33u3aUizwlZSOkE77DHb8jJFUbvbpNqnKhygkrCQpKk/uqSe4/saqUftTEjVuoXHJ73QlDYUsNjGE5wEpzxuTvV3V2l4ttt3x8BboS2oBxtaurIJxkHznFTi+Q2tDDp+MxttNVq/D79yw9qFmn+wkmJPxdI3MeXPPrWVaQtxYbbQpa1HASkZJ+gojarPIuMSZJadZbTEGVpcOCdice3Her2l9P3WaEXKLJTBSkn0nSMqVyCQPHI3qjfLVPtk4MSiHFSDlDqVHpdJO+ffJ3B812q5QtwtNrAUPn6+W3nS7elPW9sm9uGFFsz5DI+EzkjPcQcQc0S03qn9VWwxFQy8AorbUFBPO+Ffeq9psVxviJE5pbDaS6okryApROSABwN+a0beiLf8ABemuQ+ZWN3grYK/48YrN2y93KxfEQWgysJcUCFgkJUDgkY+nFJNutve0XZf5kiZrQXNnc2XuzOvklgAhITEgwMGIOPU+RiapSZE9LItkl5wNRlkBkkYSofn2qvSdcceeW86orccUVLUe5PNNmrdCekbfTvWJecLi5kkDAkyYGw+Q+XaqdOKakK7qKrtnuMi1XBE2N0laQUlKuFJPINXLnc5OortFEpbMVJUGkc9DYJ3JJ57UHqXIqJTCCv2kfFETTreoXCGPduolokEp4J/PH+96PR2rhY9TrYtCxcHm28qCE7LQdyFDOxG3fxUb/qWbeo6Y62m47AUFFCCSVkcZJ7DxQaO44wvrYcWysAjqQrpODyNqYbVCLVJWHFgFQAzz/Hp2ppervJt121upSG1kkomRBiACRPrnOPOvSdFXaE/ZI8UvNtyI6A2ttSgDtwR5BoH+kS5xJjsaHFdS6phRW4tByEkjAAPnv/askpKVcgH6inAAGAMClmtLbbuS+CecetW954wurrSxpykACACrkgRGODgSfsK07etLomEGC0wp4J6Q+c5+vTxms4SVEqUoqUSSSeSTyagKcU4zbNMz7NMTVBe6peX4SLlwr6cCeP3uc1IU9RqVT0hVSlSpV7RTjinFKlRRTipUqVeGinFKlSoopVKlSoopxSpUqKK//9k=" alt="Vorm" style="width:70px">
+      </div>
+      <div class="completion-sparkle">✨</div>
+      <h2 class="completion-title">Quiz Complete!</h2>
+      <p class="completion-sub">You've answered all 35 questions</p>
+      <div class="completion-score-wrap">
+        <span class="completion-score-num" id="compScore">0</span>
+        <span class="completion-score-max">/ 100</span>
+      </div>
+      <div class="completion-band" id="compBand"></div>
+      <div class="completion-divider"></div>
+      <button class="completion-submit-btn" onclick="submitFromCompletion()">
+        🏆 See My Full Results &amp; Download PDF
+      </button>
+      <p class="completion-note">After downloading your results, you need to <strong>UPLOAD the PDF to Google Classroom.</strong></p>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION BANNERS -->
+<div class="section-banner" id="bannerB">
+  <div class="sb-eyebrow" style="color:#4ec9b0">Section 2 of 3</div>
+  <div class="sb-title">Computational Thinking</div>
+  <div class="sb-desc">These questions are less about Python syntax and more about choosing the right tools for the job. Think about data types, structures, and how programs are designed.</div>
+  <button class="sb-btn" onclick="dismissBanner('bannerB')">Let's go →</button>
+</div>
+
+<div class="section-banner" id="bannerC">
+  <div class="sb-eyebrow" style="color:#f2c44a">Section 3 of 3</div>
+  <div class="sb-title">AI &amp; You</div>
+  <div class="sb-desc">The final section is about using AI tools responsibly and effectively when learning to code. Think carefully — some of these might surprise you.</div>
+  <button class="sb-btn" onclick="dismissBanner('bannerC')">Let's go →</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════
+const PIN = '8115';
+const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@education\.nsw\.gov\.au$/;
+let studentEmail = '';
+let currentQ = 0;
+let lives = 3;
+let hintsLeft = 3;
+let answered  = new Array(35).fill(false);
+let scores    = new Array(35).fill(0);
+let userAns   = new Array(35).fill(null);
+let hintUsed  = new Array(35).fill(false);
+
+// ════════════════════════════════════════════════════════
+//  QUESTIONS
+// ════════════════════════════════════════════════════════
+const Q = [
+
+// ─── 1 · Unistructural ─────────────────────────────────
+{ id:1, solo:'uni', label:'Getting Started', section:'A', pts:1, type:'choice',
+  text:'Which symbol do you use to assign (store) a value into a variable?',
+  choices:['==','=','!=',':'],
+  correct:1,
+  hint:'One of these checks whether two things are equal. One stores a value. They look similar but do completely different jobs.',
+  fb:{ok:'✓ Correct! A single = stores a value into a variable. Double == checks if two things are equal.',
+      bad:'✗ A single = is the assignment operator — it stores a value. == checks equality.'}},
+
+// ─── 2 · Unistructural ─────────────────────────────────
+{ id:2, solo:'uni', label:'Getting Started', section:'A', pts:1, type:'choice',
+  text:'What data type is the value "Hello"?',
+  choices:['int','float','bool','str'],
+  correct:3,
+  hint:'In Python, text values are always wrapped in quotes. The data type name is short for "string".',
+  fb:{ok:'✓ Correct! Text values in Python are called strings — str for short.',
+      bad:'✗ Text wrapped in quotes is a string — str in Python.'}},
+
+// ─── 3 · Unistructural ─────────────────────────────────
+{ id:3, solo:'uni', label:'Getting Started', section:'A', pts:1, type:'choice',
+  text:'What is the value of x after these two lines run?\n\nx = 4\nx = 10',
+  choices:['4','10','14','x'],
+  correct:1,
+  hint:'Python runs line by line from top to bottom. When you assign a variable twice, what happens to the first value?',
+  fb:{ok:'✓ Correct! Python runs line by line. The second assignment replaces the first, so x ends up as 10.',
+      bad:'✗ Python runs top to bottom. The second line x = 10 replaces the first, so x is 10.'}},
+
+// ─── 4 · Unistructural ─────────────────────────────────
+{ id:4, solo:'uni', label:'Getting Started', section:'A', pts:1, type:'hotspot',
+  text:'Click the line that contains a syntax error:',
+  lines:['name = "Sam"', 'age = 12', 'print(name', 'score = 100'],
+  correct:2,
+  hint:'Every opening bracket in Python needs a matching closing bracket on the same line.',
+  fb:{ok:'✓ Correct! Line 3 is missing the closing bracket. It should be print(name).',
+      bad:'✗ Line 3 is the error — print(name is missing its closing bracket ).'}},
+
+// ─── 5 · Multistructural ───────────────────────────────
+{ id:5, solo:'multi', label:'Finding My Feet', section:'A', pts:2, type:'selectall',
+  text:'Select ALL of the valid Python variable names:',
+  options:['my_score','2fast','total','_count','first name'],
+  correct:[0,2,3],
+  hint:'Variable names have three rules — think about what characters are allowed, what they can start with, and whether spaces are permitted.',
+  fb:{ok:'✓ All correct! my_score, total and _count are all valid. 2fast starts with a number (not allowed) and first name has a space (not allowed).',
+      part:'⚠ Partial marks. 2fast starts with a number — not allowed. first name has a space — not allowed.',
+      bad:'✗ Valid names can use letters, numbers and underscores but cannot start with a number or contain spaces.'}},
+
+// ─── 6 · Multistructural ───────────────────────────────
+{ id:6, solo:'multi', label:'Finding My Feet', section:'A', pts:2, type:'choice',
+  text:'What does this code print?\n\nx = 3\nprint(x + 2)',
+  choices:['3','5','x + 2','32'],
+  correct:1,
+  hint:'When Python sees a variable name inside print(), it uses the value stored in that variable — not the name itself.',
+  fb:{ok:'✓ Correct! x holds the value 3, so x + 2 = 5.',
+      bad:'✗ x holds 3, so Python calculates 3 + 2 = 5 and prints that.'}},
+
+// ─── 7 · Multistructural ───────────────────────────────
+{ id:7, solo:'multi', label:'Finding My Feet', section:'A', pts:2, type:'dragorder',
+  text:'These lines build a greeting message. Drag them into the correct order:',
+  items:[
+    {id:'B', text:'B  —  name = "Alex"'},
+    {id:'C', text:'C  —  greeting = "Hello " + name'},
+    {id:'A', text:'A  —  print(greeting)'}
+  ],
+  correctOrder:['B','C','A'],
+  hint:'You can only use a variable after it has been created. Which line creates name? Which line needs name to already exist?',
+  fb:{ok:'✓ Correct! First create name, then build greeting using name, then print greeting.',
+      bad:'✗ You must create name first, then build greeting (which uses name), then print greeting.'}},
+
+// ─── 8 · Multistructural ───────────────────────────────
+{ id:8, solo:'multi', label:'Finding My Feet', section:'A', pts:2, type:'selectall',
+  text:'Select ALL of the valid Python comparison operators:',
+  options:['x == 5','x = 5','x != 5','x <> 5','x >= 5'],
+  correct:[0,2,4],
+  hint:'Comparison operators always produce True or False. One of these options is assignment, not comparison. One was removed from Python a long time ago.',
+  fb:{ok:'✓ Correct! == (equal), != (not equal) and >= (greater or equal) are all comparisons. Single = is assignment. <> is not valid Python.',
+      part:'⚠ Nearly there. x = 5 is assignment, not comparison. x <> 5 is not valid Python 3.',
+      bad:'✗ Valid comparisons: ==, !=, >=. Single = assigns a value. <> is not valid Python 3.'}},
+
+// ─── 9 · Multistructural ───────────────────────────────
+{ id:9, solo:'multi', label:'Finding My Feet', section:'A', pts:2, type:'choice',
+  text:'What does this code print?\n\nscore = 40\nif score >= 50:\n    print("Pass")\nelse:\n    print("Not yet")',
+  choices:['Pass','Not yet','40','Nothing'],
+  correct:1,
+  hint:'The condition checks whether score is 50 or more. Ask yourself: is 40 greater than or equal to 50?',
+  fb:{ok:'✓ Correct! 40 is not >= 50, so the condition is False and the else branch runs.',
+      bad:'✗ 40 is not >= 50, so the if condition is False. Python runs the else branch instead.'}},
+
+// ─── 10 · Multistructural ──────────────────────────────
+{ id:10, solo:'multi', label:'Finding My Feet', section:'A', pts:2, type:'match',
+  text:'Match each value on the left to its correct data type on the right:',
+  pairs:[
+    {val:'42',       type:'int'},
+    {val:'"yes"',    type:'str'},
+    {val:'3.5',      type:'float'},
+    {val:'False',    type:'bool'}
+  ],
+  hint:'Think about what each category means — whole numbers, decimals, text in quotes, and true/false answers.',
+  fb:{ok:'✓ Correct! Whole numbers → int, decimals → float, text in quotes → str, True/False → bool.',
+      part:'⚠ Some were wrong. Whole numbers are int, decimals are float, text in quotes is str, True/False is bool.',
+      bad:'✗ 42 → int, 3.5 → float, "yes" → str, False → bool.'}},
+
+// ─── 11 · Relational ───────────────────────────────────
+{ id:11, solo:'rel', label:'Connecting the Dots', section:'A', pts:3, type:'choice',
+  text:'What does this code print?\n\nfor i in range(3):\n    print(i)',
+  choices:['1 2 3','0 1 2','0 1 2 3','3'],
+  correct:1,
+  hint:'range() starts counting from a specific number by default, and it always stops before the number you give it — not at it.',
+  fb:{ok:'✓ Correct! range(3) produces 0, 1, 2 — it starts at 0 and stops before reaching 3.',
+      bad:'✗ range(3) produces 0, 1, 2. It starts at 0 and stops before (not at) 3.'}},
+
+// ─── 12 · Relational ───────────────────────────────────
+{ id:12, solo:'rel', label:'Connecting the Dots', section:'A', pts:3, type:'hotspot',
+  text:'This should print "Pass" when score is 50 or above. Click the line with the logic error:',
+  lines:['score = 50', 'if score > 50:', '    print("Pass")', 'else:', '    print("Try again")'],
+  correct:1,
+  hint:'There is a difference between "more than" and "at least as much as". Which one includes the boundary value itself?',
+  fb:{ok:'✓ Correct! > 50 misses exactly 50. It should be >= 50 (50 or more).',
+      bad:'✗ Line 2 is the error. > 50 excludes exactly 50. It should be >= 50 to include the boundary.'}},
+
+// ─── 13 · Relational ───────────────────────────────────
+{ id:13, solo:'rel', label:'Connecting the Dots', section:'A', pts:3, type:'dragorder',
+  text:'Arrange these lines so the program prints a personalised score message:',
+  items:[
+    {id:'C', text:'C  —  score_text = str(score)'},
+    {id:'A', text:'A  —  print("Your score is: " + score_text)'},
+    {id:'B', text:'B  —  score = 25'}
+  ],
+  correctOrder:['B','C','A'],
+  hint:'You cannot convert a variable that does not exist yet, and you cannot print a variable that has not been created. What must come first?',
+  fb:{ok:'✓ Correct! Create score first, convert it to a string, then print it.',
+      bad:'✗ Order: score = 25 first, then score_text = str(score), then the print.'}},
+
+// ─── 14 · Relational ───────────────────────────────────
+{ id:14, solo:'rel', label:'Connecting the Dots', section:'A', pts:3, type:'selectall',
+  text:'What does this code print? Select ALL values that appear in the output:\n\nfor i in range(1, 6):\n    print(i)',
+  options:['0','1','3','5','6'],
+  correct:[1,2,3],
+  hint:'range() always stops before the end number, not at it. What is the first number range() gives when you start at 1?',
+  fb:{ok:'✓ Correct! range(1, 6) produces 1, 2, 3, 4, 5 — it starts at 1 and stops before 6.',
+      part:'⚠ range(1, 6) starts at 1 (not 0) and stops before 6 (so 6 never appears).',
+      bad:'✗ range(1, 6) produces 1, 2, 3, 4, 5. It starts at 1 and stops before reaching 6.'}},
+
+// ─── 15 · Relational ───────────────────────────────────
+{ id:15, solo:'rel', label:'Connecting the Dots', section:'A', pts:3, type:'choice',
+  text:'What does this code print?\n\nage = 14\nif age >= 18:\n    print("Adult")\nelif age >= 13:\n    print("Teen")\nelse:\n    print("Child")',
+  choices:['Adult','Teen','Child','Adult and Teen'],
+  correct:1,
+  hint:'Python checks each condition from top to bottom and stops at the first one that is True. Does 14 satisfy the first condition?',
+  fb:{ok:'✓ Correct! 14 is not >= 18 (False), but 14 is >= 13 (True), so "Teen" prints and Python skips the rest.',
+      bad:'✗ Python checks top to bottom. 14 >= 18 is False, 14 >= 13 is True → "Teen". It never reaches the else.'}},
+
+// ─── 16 · Relational ───────────────────────────────────
+{ id:16, solo:'rel', label:'Connecting the Dots', section:'A', pts:3, type:'match',
+  text:'Match each code snippet to the value it outputs:',
+  pairs:[
+    {val:'print(10 - 3)',  type:'7'},
+    {val:'print(10 // 4)', type:'2'},
+    {val:'print(3 * 4)',   type:'12'},
+    {val:'print(9 - 9)',   type:'0'}
+  ],
+  hint:'Three of these are straightforward arithmetic. The // operator might be new — it divides and then drops any decimal, giving a whole number result.',
+  fb:{ok:'✓ Correct! 10-3=7, 10//4=2 (floor division drops the remainder), 3*4=12, 9-9=0.',
+      part:'⚠ Check the // operator — it divides and drops the decimal part, so 10 // 4 = 2 (not 2.5).',
+      bad:'✗ 10-3=7, 10//4=2 (floor division), 3*4=12, 9-9=0.'}},
+
+// ─── 17 · Extended Abstract ────────────────────────────
+{ id:17, solo:'ext', label:'Thinking Like a Programmer', section:'A', pts:4, type:'dragorder',
+  text:'Arrange these lines to make a program that counts up and prints each number while count is less than 4:',
+  items:[
+    {id:'C', text:'C  —  while count < 4:'},
+    {id:'A', text:'A  —  print(count)'},
+    {id:'B', text:'B  —  count = 1'},
+    {id:'D', text:'D  —  count = count + 1'}
+  ],
+  correctOrder:['B','C','A','D'],
+  hint:'You need to set up the variable before the loop, start the loop, do the action inside it, then update the variable so the loop eventually ends.',
+  fb:{ok:'✓ Correct! Set count to 1, start the while loop, print inside it, then increase count so it eventually stops.',
+      bad:'✗ Order: count = 1, while count < 4:, then indented print(count), then indented count = count + 1.'}},
+
+// ─── 18 · Extended Abstract ────────────────────────────
+{ id:18, solo:'ext', label:'Thinking Like a Programmer', section:'A', pts:4, type:'hotspot',
+  text:'This program should count down from 5 to 1 but runs forever instead. Click the line causing the infinite loop:',
+  lines:['count = 5', 'while count > 0:', '    print(count)', '    count + 1'],
+  correct:3,
+  hint:'There is a difference between calculating something and storing the result back into a variable. Which line does a calculation but never saves the answer?',
+  fb:{ok:'✓ Correct! count + 1 calculates a new value but throws it away — count never changes. It needs to be count = count - 1.',
+      bad:'✗ Line 4 is the bug. count + 1 calculates but does not update count. It should be count = count - 1.'}},
+
+// ─── 19 · Extended Abstract ────────────────────────────
+{ id:19, solo:'ext', label:'Thinking Like a Programmer', section:'A', pts:4, type:'selectall',
+  text:'A student wants to print every number from 1 to 5 using a for loop.\n\nSelect ALL options that correctly do this:',
+  options:[
+    'for i in range(1, 6): print(i)',
+    'for i in range(5): print(i)',
+    'for i in range(1, 5): print(i)',
+    'for i in range(1, 6, 1): print(i)'
+  ],
+  correct:[0,3],
+  hint:'range() always stops before the end value — so to include 5, what end value do you need? The third argument in range() is the step size. A step of 1 moves one number at a time.',
+  fb:{ok:'✓ Correct! Options 1 and 4 both print 1 to 5. Option 2 starts at 0. Option 3 stops before 5.',
+      part:'⚠ Check carefully. range(5) starts at 0. range(1, 5) stops at 4, missing 5.',
+      bad:'✗ Only range(1, 6) and range(1, 6, 1) correctly produce 1, 2, 3, 4, 5.'}},
+
+// ─── 20 · Extended Abstract ────────────────────────────
+{ id:20, solo:'ext', label:'Thinking Like a Programmer', section:'A', pts:4, type:'hotspot',
+  text:'This program should print every item in the list, but it only prints the same thing three times. Click the line with the bug:',
+  lines:['fruits = ["apple", "banana", "cherry"]', 'for item in fruits:', '    print(fruits)'],
+  correct:2,
+  hint:'Inside a for loop, the loop variable holds one item at a time. Are you printing the loop variable, or the whole list?',
+  fb:{ok:'✓ Correct! print(fruits) prints the entire list on every loop. It should be print(item) to print one item at a time.',
+      bad:'✗ Line 3 is the bug. print(fruits) prints the whole list every time. It should be print(item) — item holds one value per loop.'}}
+,
+// ════════════════════════════════════════════════════════
+//  SECTION B — Computational Thinking  Q21-Q30
+// ════════════════════════════════════════════════════════
+
+{ id:21, solo:'uni', label:'Getting Started', section:'B', pts:1, type:'choice',
+  text:"A student wants to store a person's name in their program. Which data type should they use?",
+  choices:['int','float','str','bool'],
+  correct:2,
+  hint:'Think about what kind of information a name is — is it a number, a decimal, text, or a true/false value?',
+  fb:{ok:'✓ Correct! Names are text, so str (string) is the right data type.',
+      bad:'✗ A name is text, so str (string) is the correct choice.'}},
+
+{ id:22, solo:'uni', label:'Getting Started', section:'B', pts:1, type:'choice',
+  text:'A game needs to track whether a player is currently alive or not. Which data type fits best?',
+  choices:['int','str','float','bool'],
+  correct:3,
+  hint:'This value only ever has two possible states. There is a data type in Python designed exactly for two-state values.',
+  fb:{ok:'✓ Correct! bool is perfect for two-state values like alive/not alive — it holds True or False.',
+      bad:'✗ bool holds True or False, making it ideal for two-state values like alive/not alive.'}},
+
+{ id:23, solo:'multi', label:'Finding My Feet', section:'B', pts:2, type:'selectall',
+  text:"A program needs to store a student's age. Which data type is the most sensible choice? Select ALL that apply:",
+  options:['int — a whole number like 14','float — a decimal like 14.5','str — text like "14"','bool — True or False'],
+  correct:[0],
+  hint:'Age is always a whole number. Which data type stores whole numbers? Could you do maths on an age stored as text?',
+  fb:{ok:'✓ Correct! int is the right choice. Age is a whole number and you may need to do arithmetic with it.',
+      part:'⚠ int is the best choice. float technically works but age is always whole. str means you cannot do arithmetic.',
+      bad:'✗ int is best for age — it is a whole number and you may need to add or compare it.'}},
+
+{ id:24, solo:'multi', label:'Finding My Feet', section:'B', pts:2, type:'choice',
+  text:'A teacher wants to store a class list of 25 student names so the program can loop through them one by one. Which structure fits best?',
+  choices:['A single str variable','A list','An int variable','A bool variable'],
+  correct:1,
+  hint:'When you need to store multiple items of the same kind and process them one at a time, which Python structure is designed for that?',
+  fb:{ok:'✓ Correct! A list is designed to hold multiple items in order, which you can then loop through one by one.',
+      bad:'✗ A list holds multiple items in order and works perfectly with a for loop to process each one.'}},
+
+{ id:25, solo:'multi', label:'Finding My Feet', section:'B', pts:2, type:'selectall',
+  text:"A program tracks a student's test score stored as an int. Which operations make sense for this data? Select ALL that apply:",
+  options:['Add 5 bonus points to the score','Check if the score is greater than 50','Loop through the score one item at a time','Print the score to the screen'],
+  correct:[0,1,3],
+  hint:'Think about what you can actually do with a single number. Can you loop through a number the same way you loop through a list?',
+  fb:{ok:'✓ Correct! You can do arithmetic, compare, and print a number. You cannot loop through a single integer — it is not a collection.',
+      part:'⚠ You can add to, compare, and print a number. Looping through a single integer does not make sense.',
+      bad:'✗ A number can be added to, compared, and printed. It cannot be looped through — only collections like lists can be iterated.'}},
+
+{ id:26, solo:'rel', label:'Connecting the Dots', section:'B', pts:3, type:'choice',
+  text:'A program needs to check every name in a list and print a greeting for each one. Which combination of tools does it need?',
+  choices:['A variable and an if statement','A list and a for loop','A float and a while loop','A bool and a for loop'],
+  correct:1,
+  hint:'You need something to hold all the names together, and something to go through them one by one automatically.',
+  fb:{ok:'✓ Correct! A list holds all the names, and a for loop visits each one automatically.',
+      bad:'✗ A list stores all the names together, and a for loop processes each one in turn.'}},
+
+{ id:27, solo:'rel', label:'Connecting the Dots', section:'B', pts:3, type:'selectall',
+  text:'A student is building a quiz game that keeps asking questions until the player gets 3 correct. Which tools would the program need? Select ALL that apply:',
+  options:['A variable to count correct answers','A while loop','A list of questions','A float to store the score','A bool to store the player name'],
+  correct:[0,1,2],
+  hint:'Break the problem down — what needs to be stored? What needs to repeat? What holds the questions themselves?',
+  fb:{ok:'✓ Correct! You need a counter variable, a while loop to keep going, and a list to hold the questions.',
+      part:'⚠ You need a counter, a while loop, and a list of questions. A float is not right for counting whole numbers, and a bool stores True/False not a name.',
+      bad:'✗ The program needs a counter variable (int), a while loop to repeat, and a list to hold the questions.'}},
+
+{ id:28, solo:'rel', label:'Connecting the Dots', section:'B', pts:3, type:'hotspot',
+  text:'A student writes this program to print each item from their shopping list, but it prints the whole list every time instead of one item. Click the line with the bug:',
+  lines:['shopping = ["milk", "bread", "eggs"]','for item in shopping:','    print(shopping)'],
+  correct:2,
+  hint:'Inside a for loop, the loop variable holds one item at a time. Are you printing the loop variable, or the whole list?',
+  fb:{ok:'✓ Correct! print(shopping) prints the entire list every loop. It should be print(item) — item holds one value at a time.',
+      bad:'✗ Line 3 is the bug. print(shopping) prints the whole list every time. It should be print(item).'}},
+
+{ id:29, solo:'ext', label:'Thinking Like a Programmer', section:'B', pts:4, type:'choice',
+  text:'A program stores the prices of 5 items. It needs to find the most expensive one. Which approach makes the most sense?',
+  choices:['Store all 5 prices in separate variables and compare them one by one','Store all 5 prices in a list and use a loop to find the highest','Store all prices as a single str and read the characters','Store the prices as bool values'],
+  correct:1,
+  hint:'Imagine the program needed to handle 500 items instead of 5. Which approach would still work without needing to rewrite everything?',
+  fb:{ok:'✓ Correct! A list and a loop scales to any number of items. Separate variables become unmanageable as the data grows.',
+      bad:'✗ A list and a loop is the right approach. It works whether you have 5 items or 500, without rewriting the code.'}},
+
+{ id:30, solo:'ext', label:'Thinking Like a Programmer', section:'B', pts:4, type:'selectall',
+  text:'A program asks a user to guess a whole number between 1 and 10 and keeps asking until they get it right. Which of these would the program need? Select ALL that apply:',
+  options:['A variable to store the secret number','A variable to store the user guess','A while loop to keep asking','A list to store all guesses','A way to compare the guess to the secret number','A float to store the guess'],
+  correct:[0,1,2,4],
+  hint:'Think through what the program actually does step by step. What does it store? What does it repeat? What decision does it make?',
+  fb:{ok:'✓ Correct! You need two variables, a while loop, and a comparison. A list of all guesses is not required, and a float is wrong for whole numbers.',
+      part:'⚠ A list of guesses is not needed — just the current guess. A float is wrong since the numbers are whole.',
+      bad:'✗ The program needs: a variable for the secret number, a variable for the guess, a while loop, and a comparison. No list or float needed.'}},
+
+// ════════════════════════════════════════════════════════
+//  SECTION C — AI & Ethics  Q31-Q35
+// ════════════════════════════════════════════════════════
+
+{ id:31, solo:'uni', label:'Getting Started', section:'C', pts:3, type:'choice',
+  text:'A student asks an AI to explain what a for loop does in plain English. Is this a good use of AI for learning?',
+  choices:['Yes — asking AI to explain concepts helps you understand them','No — you should only use textbooks and teachers','No — AI explanations are always incorrect','Yes — but only if the teacher gives permission first'],
+  correct:0,
+  hint:'Think about the purpose of the action. Is the student trying to understand something, or trying to avoid doing the work?',
+  fb:{ok:'✓ Correct! Using AI to explain concepts you do not understand is a legitimate learning strategy — just like asking a teacher or looking something up.',
+      bad:'✗ Using AI to understand a concept is a valid learning approach. The student is trying to learn, not avoid work.'}},
+
+{ id:32, solo:'uni', label:'Getting Started', section:'C', pts:3, type:'choice',
+  text:'A student copies an AI solution to a coding assignment and submits it as their own work without reading or understanding it. What best describes this?',
+  choices:['Efficient use of available tools','Academic dishonesty','A reasonable shortcut under time pressure','Acceptable if the code works correctly'],
+  correct:1,
+  hint:'The key detail is "without reading or understanding it". The purpose of the assignment is to develop your own skills. What happens to your learning if something else does the work?',
+  fb:{ok:'✓ Correct! Submitting work you did not produce or understand as your own is academic dishonesty, regardless of the tool used to generate it.',
+      bad:'✗ Submitting AI-generated work as your own without understanding it is academic dishonesty. The code being correct does not change that.'}},
+
+{ id:33, solo:'multi', label:'Finding My Feet', section:'C', pts:4, type:'selectall',
+  text:'Which of these are good ways to use AI when learning to code? Select ALL that apply:',
+  options:['Ask AI to explain an error message you do not understand','Ask AI to write your entire assignment for you','Ask AI to give you a hint when you are stuck on a problem','Ask AI to check your finished code and explain what each part does','Copy AI-generated code into your work without reading it','Ask AI to quiz you on what you have learned'],
+  correct:[0,2,3,5],
+  hint:'The question is whether the AI is helping you learn or replacing your learning. Which options still require you to think, understand, and do the work yourself?',
+  fb:{ok:'✓ Correct! Getting explanations, hints, code reviews, and practice questions all support your learning. Having AI write your assignment or copying code without reading it replaces your learning.',
+      part:'⚠ Having AI write your assignment replaces your learning entirely. Copying code without reading it means you learn nothing from it.',
+      bad:'✗ Good AI use keeps you in the driving seat — getting explanations, hints, reviews, and quizzes. Bad use is when AI does the thinking for you.'}},
+
+{ id:34, solo:'rel', label:'Connecting the Dots', section:'C', pts:6, type:'selectall',
+  text:'A student gets this error: TypeError: can only concatenate str (not int) to str They ask an AI to explain it. The AI gives a clear explanation. Which responses show good learning practice? Select ALL that apply:',
+  options:['Read the explanation carefully and try to fix the code themselves','Copy whatever fix the AI suggests without reading it','Use the explanation to understand what went wrong','Ask the AI to rewrite the broken section for them','Apply what they learned to avoid the same error in future code'],
+  correct:[0,2,4],
+  hint:'AI gave them the understanding — now what should they do with it? Which options mean the student is doing the thinking, and which mean the AI is still doing the work?',
+  fb:{ok:'✓ Correct! Reading the explanation, understanding what went wrong, and applying that knowledge are all signs of genuine learning.',
+      part:'⚠ The goal is to understand and fix it yourself. Copying a fix or asking AI to rewrite the code means the error is resolved but nothing was learned.',
+      bad:'✗ Good responses use the explanation to understand and fix the problem independently. Copying AI fixes or asking for rewrites replaces understanding with a quick patch.'}},
+
+{ id:35, solo:'ext', label:'Thinking Like a Programmer', section:'C', pts:9, type:'selectall',
+  text:'A student is stuck on a Python assignment. Which of these four approaches show responsible and effective use of AI for learning? | A: Pastes the full task and asks AI to write the solution, then submits it. | B: Gets an error, asks AI what it means, fixes it themselves. | C: Has not started, asks AI for a strategy hint, writes their own code. | D: Finishes the task, asks AI to review their code and explain improvements.',
+  options:['Approach A — ask AI to write the full solution','Approach B — ask AI to explain an error, fix it yourself','Approach C — ask AI for a starting strategy, write your own code','Approach D — ask AI to review your finished work'],
+  correct:[1,2,3],
+  hint:'Ask yourself: in each approach, who is doing the thinking and the coding? Learning happens when you are the one working through the problem.',
+  fb:{ok:'✓ Excellent! Approaches B, C and D all keep the student doing the thinking and coding. AI is used to support, not replace. Approach A produces a result but no learning.',
+      part:'⚠ Approach A is the problem — the student does not write or understand any code, and submits AI work as their own. B, C and D all involve the student doing the actual work.',
+      bad:'✗ Approaches B, C and D are all responsible. In each one the student does the coding and uses AI only for explanation, hints, or feedback. Approach A replaces the work entirely.'}}
+];
+
+// ════════════════════════════════════════════════════════
+//  GATE LOGIC
+// ════════════════════════════════════════════════════════
+(function setupPin(){
+  const digits = document.querySelectorAll('.pin-digit');
+  digits.forEach((d,i)=>{
+    d.addEventListener('input', e=>{
+      if(e.target.value.length===1 && i<digits.length-1) digits[i+1].focus();
+      if(e.target.value.length===1 && i===digits.length-1) checkPin();
+    });
+    d.addEventListener('keydown', e=>{ if(e.key==='Backspace'&&!d.value&&i>0) digits[i-1].focus(); });
+  });
+  digits[0].focus();
+})();
+
+function checkPin(){
+  const pin = [...document.querySelectorAll('.pin-digit')].map(d=>d.value).join('');
+  if(pin===PIN){ showScreen('emailScreen'); setTimeout(()=>document.getElementById('emailIn').focus(),80); }
+  else{
+    const row=document.getElementById('pinRow');
+    row.classList.add('shake');
+    setTimeout(()=>{ row.classList.remove('shake'); document.querySelectorAll('.pin-digit').forEach(d=>d.value=''); document.querySelectorAll('.pin-digit')[0].focus(); },420);
+    document.getElementById('pinErr').style.display='block';
+  }
+}
+
+function checkEmail(){
+  const v=document.getElementById('emailIn').value.trim();
+  const hint=document.getElementById('emailHint');
+  if(!EMAIL_RE.test(v)){
+    document.getElementById('emailIn').classList.add('err');
+    hint.textContent='✗ Please use a valid @education.nsw.gov.au address.';
+    hint.classList.add('err');
+    return;
+  }
+  studentEmail=v;
+  document.body.className='section-a';
+  window.addEventListener('beforeunload',e=>{ e.preventDefault(); e.returnValue=''; });
+  showScreen('quizScreen');
+  renderQ(0);
+}
+document.getElementById('emailIn').addEventListener('keydown',e=>{ if(e.key==='Enter') checkEmail(); });
+
+function showBanner(id){
+  const b=document.getElementById(id);
+  if(b){ b.classList.add('show'); }
+}
+function dismissBanner(id){
+  const b=document.getElementById(id);
+  if(b){ b.classList.remove('show'); }
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{
+    s.classList.remove('active');
+    s.style.display='none';
+  });
+  const el=document.getElementById(id);
+  el.classList.add('active');
+  el.style.display=(id==='resultsScreen')?'flex':'block';
+}
+
+// ════════════════════════════════════════════════════════
+//  LIVES & HINTS
+// ════════════════════════════════════════════════════════
+function loseLife(){
+  lives=Math.max(0,lives-1);
+  ['h1','h2','h3'].forEach((id,i)=>{
+    const h=document.getElementById(id);
+    if(i>=lives) h.classList.add('lost'); else h.classList.remove('lost');
+  });
+}
+
+function useHint(){
+  if(hintsLeft<=0) return;
+  const q=Q[currentQ];
+  if(hintUsed[currentQ]) return; // already shown this hint for free
+  hintsLeft--;
+  hintUsed[currentQ]=true;
+  loseLife();
+  document.getElementById('hintCount').textContent=hintsLeft;
+  if(hintsLeft<=0) document.getElementById('hintBtn').disabled=true;
+  const strip=document.getElementById('hintStrip'+currentQ);
+  if(strip){ strip.classList.add('show'); strip.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════════════════
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
+
+function renderQ(idx){
+  currentQ=idx;
+  const q=Q[idx];
+  // Section background transition
+  const sec=q.section||'A';
+  document.body.className='section-'+sec.toLowerCase();
+  // Show section banner on first question of B and C
+  if(idx>0 && sec!==Q[idx-1].section){
+    showBanner('banner'+sec);
+  }
+  const area=document.getElementById('qArea');
+  const soloClass={uni:'solo-uni',multi:'solo-multi',rel:'solo-rel',ext:'solo-ext'}[q.solo];
+
+  let h='<div class="qcard">';
+  h+='<span class="qpts">'+q.pts+' pt'+(q.pts>1?'s':'')+'</span>';
+  h+='<div class="qnum">Question '+(idx+1)+' of 20</div>';
+  h+='<span class="solo-badge '+soloClass+'">'+q.label+'</span>';
+  h+='<div class="qtxt">'+esc(q.text)+'</div>';
+  if(q.codeBlock) h+='<div class="code">'+esc(q.codeBlock)+'</div>';
+
+  // hint strip (hidden until used)
+  h+='<div class="hint-strip" id="hintStrip'+idx+'">💡 '+esc(q.hint)+'</div>';
+
+  if(q.type==='choice')    h+=renderChoice(q,idx);
+  if(q.type==='selectall') h+=renderSelectAll(q,idx);
+  if(q.type==='dragorder') h+=renderDragOrder(q,idx);
+  if(q.type==='match')     h+=renderMatch(q,idx);
+  if(q.type==='hotspot')   h+=renderHotspot(q,idx);
+
+  h+='<div class="fb" id="fb'+idx+'"></div>';
+  h+='</div>';
+  area.innerHTML=h;
+
+  if(q.type==='dragorder') attachDrag(idx);
+  if(q.type==='match')     attachMatch(idx);
+  if(hintUsed[idx])        document.getElementById('hintStrip'+idx).classList.add('show');
+  if(answered[idx])        restoreState(idx);
+  updateNav(idx);
+  updateProgress();
+}
+
+function esc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+// ── choice ──
+function renderChoice(q,idx){
+  let h='<div class="choices">';
+  q.choices.forEach((c,ci)=>{
+    h+='<div class="ch" data-ci="'+ci+'" onclick="selChoice('+idx+','+ci+')">'+esc(c)+'</div>';
+  });
+  return h+'</div>';
+}
+
+// ── select-all ──
+function renderSelectAll(q,idx){
+  let h='<div class="sa-note">Select all that apply, then click Check Answer</div><div class="sa-list">';
+  q.options.forEach((o,oi)=>{
+    h+='<div class="sa-item" data-oi="'+oi+'" onclick="togSA('+idx+','+oi+')"><div class="cb" id="cb'+idx+'_'+oi+'">✓</div><span>'+esc(o)+'</span></div>';
+  });
+  return h+'</div>';
+}
+
+// ── drag order ──
+function renderDragOrder(q,idx){
+  const shuffled=shuffle(q.items);
+  let h='<div class="do-note">Drag to reorder — then click Check Answer</div><div class="do-list" id="doList'+idx+'">';
+  shuffled.forEach((item,si)=>{
+    h+='<div class="do-item" draggable="true" data-id="'+item.id+'">'
+      +'<span class="do-handle">⠿</span>'
+      +'<span class="do-idx">'+(si+1)+'</span>'
+      +'<span>'+esc(item.text)+'</span></div>';
+  });
+  return h+'</div>';
+}
+
+// ── match ──
+function renderMatch(q,idx){
+  // Shuffle sources and targets independently
+  const srcOrder=shuffle([...Array(q.pairs.length).keys()]);
+  const tgtOrder=shuffle([...Array(q.pairs.length).keys()]);
+  let h='<div class="match-note">Drag items from the left into the correct slot on the right. Click a placed item to return it.</div>';
+  h+='<div class="match-wrap">';
+  h+='<div><div class="match-col-hdr">Values</div><div class="match-src-list" id="mSrc'+idx+'">';
+  srcOrder.forEach(pi=>{
+    h+='<div class="msrc" draggable="true" data-pi="'+pi+'">'+esc(q.pairs[pi].val)+'</div>';
+  });
+  h+='</div></div>';
+  h+='<div><div class="match-col-hdr">Types / Outputs</div><div class="match-tgt-list" id="mTgt'+idx+'">';
+  tgtOrder.forEach(pi=>{
+    h+='<div class="mtgt" id="mt'+idx+'_'+pi+'" data-pi="'+pi+'">'
+      +'<span class="mtgt-lbl">'+esc(q.pairs[pi].type)+'</span>'
+      +'<div class="mtgt-drop" id="md'+idx+'_'+pi+'"></div></div>';
+  });
+  h+='</div></div></div>';
+  return h;
+}
+
+// ── hotspot ──
+function renderHotspot(q,idx){
+  let h='<div class="hs-note">Click the line that contains the error</div><div class="hs-code">';
+  q.lines.forEach((line,li)=>{
+    h+='<div class="hs-line" data-li="'+li+'" onclick="selHS('+idx+','+li+')">'
+      +'<span class="hs-lnum">'+(li+1)+'</span>'
+      +'<span>'+esc(line)+'</span></div>';
+  });
+  return h+'</div>';
+}
+
+// ════════════════════════════════════════════════════════
+//  INTERACTIONS
+// ════════════════════════════════════════════════════════
+function selChoice(qIdx,ci){
+  if(answered[qIdx]) return;
+  document.querySelectorAll('.ch').forEach(c=>c.classList.remove('sel'));
+  document.querySelector('.ch[data-ci="'+ci+'"]').classList.add('sel');
+  userAns[qIdx]=ci;
+  document.getElementById('btnCheck').disabled=false;
+}
+
+function togSA(qIdx,oi){
+  if(answered[qIdx]) return;
+  const item=document.querySelector('.sa-item[data-oi="'+oi+'"]');
+  item.classList.toggle('sel');
+  if(!Array.isArray(userAns[qIdx])) userAns[qIdx]=[];
+  const arr=userAns[qIdx], pos=arr.indexOf(oi);
+  if(pos===-1) arr.push(oi); else arr.splice(pos,1);
+  document.getElementById('btnCheck').disabled=arr.length===0;
+}
+
+function selHS(qIdx,li){
+  if(answered[qIdx]) return;
+  document.querySelectorAll('.hs-line').forEach(l=>l.classList.remove('sel'));
+  document.querySelector('.hs-line[data-li="'+li+'"]').classList.add('sel');
+  userAns[qIdx]=li;
+  document.getElementById('btnCheck').disabled=false;
+}
+
+// ── drag order attach ──
+let dragSrc=null;
+function attachDrag(qIdx){
+  const list=document.getElementById('doList'+qIdx);
+  if(!list) return;
+  list.querySelectorAll('.do-item').forEach(item=>{
+    item.addEventListener('dragstart',e=>{ dragSrc=item; item.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    item.addEventListener('dragend',()=>{ item.classList.remove('dragging'); list.querySelectorAll('.do-item').forEach(i=>i.classList.remove('over')); refreshDOIndexes(list); });
+    item.addEventListener('dragover',e=>{ e.preventDefault(); if(dragSrc!==item) item.classList.add('over'); });
+    item.addEventListener('dragleave',()=>item.classList.remove('over'));
+    item.addEventListener('drop',e=>{
+      e.preventDefault();
+      if(dragSrc&&dragSrc!==item){
+        const all=[...list.querySelectorAll('.do-item')];
+        if(all.indexOf(dragSrc)<all.indexOf(item)) list.insertBefore(dragSrc,item.nextSibling);
+        else list.insertBefore(dragSrc,item);
+      }
+      item.classList.remove('over');
+      refreshDOIndexes(list);
+      userAns[qIdx]=[...list.querySelectorAll('.do-item')].map(i=>i.dataset.id);
+      document.getElementById('btnCheck').disabled=false;
+    });
+  });
+  userAns[qIdx]=[...list.querySelectorAll('.do-item')].map(i=>i.dataset.id);
+  document.getElementById('btnCheck').disabled=false;
+}
+function refreshDOIndexes(list){ list.querySelectorAll('.do-item').forEach((item,i)=>{ const s=item.querySelector('.do-idx'); if(s) s.textContent=i+1; }); }
+
+// ── match attach ──
+let mDragItem=null;
+function attachMatch(qIdx){
+  const srcList=document.getElementById('mSrc'+qIdx);
+  if(!srcList) return;
+  function makeDraggable(el){
+    el.draggable=true;
+    el.addEventListener('dragstart',e=>{ mDragItem=el; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+  }
+  srcList.querySelectorAll('.msrc').forEach(makeDraggable);
+
+  document.getElementById('mTgt'+qIdx).querySelectorAll('.mtgt').forEach(tgt=>{
+    tgt.addEventListener('dragover',e=>{ e.preventDefault(); tgt.classList.add('over'); });
+    tgt.addEventListener('dragleave',()=>tgt.classList.remove('over'));
+    tgt.addEventListener('drop',e=>{
+      e.preventDefault(); tgt.classList.remove('over');
+      if(!mDragItem) return;
+      const dz=tgt.querySelector('.mtgt-drop');
+      const existing=dz.querySelector('.msrc');
+      if(existing){ existing.classList.remove('in-slot'); existing.onclick=null; srcList.appendChild(existing); makeDraggable(existing); }
+      mDragItem.parentNode && mDragItem.parentNode.removeChild(mDragItem);
+      mDragItem.classList.add('in-slot');
+      mDragItem.draggable=false;
+      mDragItem.onclick=()=>{ mDragItem.classList.remove('in-slot'); mDragItem.onclick=null; srcList.appendChild(mDragItem); makeDraggable(mDragItem); tgt.classList.remove('filled'); updateMatchAns(qIdx); };
+      dz.appendChild(mDragItem);
+      tgt.classList.add('filled');
+      updateMatchAns(qIdx);
+      mDragItem=null;
+    });
+  });
+}
+function updateMatchAns(qIdx){
+  const q=Q[qIdx]; let ans={};
+  document.getElementById('mTgt'+qIdx).querySelectorAll('.mtgt').forEach(tgt=>{
+    const pi=tgt.dataset.pi, placed=tgt.querySelector('.mtgt-drop .msrc');
+    ans[pi]=placed?parseInt(placed.dataset.pi):null;
+  });
+  userAns[qIdx]=ans;
+  const filled=Object.values(ans).filter(v=>v!==null).length;
+  document.getElementById('btnCheck').disabled=filled<q.pairs.length;
+}
+
+// ════════════════════════════════════════════════════════
+//  CHECK ANSWER
+// ════════════════════════════════════════════════════════
+function checkAnswer(){
+  const q=Q[currentQ], fb=document.getElementById('fb'+currentQ);
+  let pts=0, cls='bad', msg=q.fb.bad;
+
+  if(q.type==='choice'){
+    const sel=userAns[currentQ], ok=sel===q.correct;
+    pts=ok?q.pts:0; cls=ok?'ok':'bad'; msg=ok?q.fb.ok:q.fb.bad;
+    document.querySelectorAll('.ch').forEach(c=>{
+      c.classList.add('locked');
+      const ci=parseInt(c.dataset.ci);
+      if(ci===q.correct) c.classList.add('ok');
+      else if(ci===sel)  c.classList.add('bad');
+    });
+
+  }else if(q.type==='hotspot'){
+    const sel=userAns[currentQ], ok=sel===q.correct;
+    pts=ok?q.pts:0; cls=ok?'ok':'bad'; msg=ok?q.fb.ok:q.fb.bad;
+    document.querySelectorAll('.hs-line').forEach(l=>{
+      l.classList.add('locked');
+      const li=parseInt(l.dataset.li);
+      if(li===q.correct) l.classList.add('ok');
+      else if(li===sel)  l.classList.add('bad');
+    });
+
+  }else if(q.type==='selectall'){
+    const sel=(userAns[currentQ]||[]).slice().sort().toString();
+    const cor=[...q.correct].sort().toString();
+    const selArr=userAns[currentQ]||[];
+    const hitCount=selArr.filter(i=>q.correct.includes(i)).length;
+    const hasWrong=selArr.some(i=>!q.correct.includes(i));
+    const isOk=sel===cor, isPart=!isOk&&hitCount>0&&!hasWrong;
+    pts=isOk?q.pts:isPart?Math.floor(q.pts/2):0;
+    cls=isOk?'ok':isPart?'part':'bad';
+    msg=isOk?q.fb.ok:isPart?q.fb.part:q.fb.bad;
+    document.querySelectorAll('.sa-item').forEach(item=>{
+      item.classList.add('locked');
+      const oi=parseInt(item.dataset.oi);
+      if(q.correct.includes(oi)) item.classList.add('ok');
+      else if(selArr.includes(oi)) item.classList.add('bad');
+    });
+
+  }else if(q.type==='dragorder'){
+    const order=userAns[currentQ]||[];
+    const cor=q.correctOrder;
+    let match=0; cor.forEach((id,i)=>{ if(order[i]===id) match++; });
+    const isOk=match===cor.length, isPart=!isOk&&match>0;
+    pts=isOk?q.pts:isPart?Math.floor(q.pts/2):0;
+    cls=isOk?'ok':isPart?'part':'bad';
+    msg=isOk?q.fb.ok:q.fb.bad;
+    const list=document.getElementById('doList'+currentQ);
+    if(list) list.querySelectorAll('.do-item').forEach((item,i)=>{
+      item.draggable=false; item.style.cursor='default';
+      item.classList.add(cor[i]&&item.dataset.id===cor[i]?'ok':'bad');
+    });
+
+  }else if(q.type==='match'){
+    const ans=userAns[currentQ]||{};
+    // ans[slotPi] = sourcePi placed there; correct if slotPi === sourcePi
+    let correct=0;
+    q.pairs.forEach((_,pi)=>{ if(ans[pi]===pi) correct++; });
+    const isOk=correct===q.pairs.length, isPart=!isOk&&correct>0;
+    pts=isOk?q.pts:isPart?Math.round(q.pts*correct/q.pairs.length):0;
+    cls=isOk?'ok':isPart?'part':'bad';
+    msg=isOk?q.fb.ok:isPart?q.fb.part:q.fb.bad;
+    document.getElementById('mTgt'+currentQ).querySelectorAll('.mtgt').forEach(tgt=>{
+      const pi=parseInt(tgt.dataset.pi), placed=tgt.querySelector('.mtgt-drop .msrc');
+      if(placed){ placed.style.cursor='default'; placed.onclick=null; }
+      tgt.classList.add(ans[pi]===pi?'ok':'bad');
+    });
+  }
+
+  fb.textContent=msg; fb.className='fb '+cls; fb.style.display='block';
+  scores[currentQ]=pts; answered[currentQ]=true;
+  const totalScore=scores.reduce((a,b)=>a+b,0);
+  document.getElementById('scoreLbl').textContent=totalScore+' / 100 pts';
+  document.getElementById('btnCheck').style.display='none';
+  document.getElementById('btnNext').style.display=currentQ<Q.length-1?'inline-block':'none';
+  checkSubmitVis();
+  updateProgress();
+  // Trigger completion celebration when final question answered
+  if(currentQ===Q.length-1) setTimeout(showCompletion, 500);
+}
+
+// ════════════════════════════════════════════════════════
+//  RESTORE STATE (back-nav)
+// ════════════════════════════════════════════════════════
+function restoreState(idx){
+  const q=Q[idx];
+  document.getElementById('btnCheck').style.display='none';
+  document.getElementById('btnNext').style.display='inline-block';
+  const fb=document.getElementById('fb'+idx);
+  const cls=scores[idx]===q.pts?'ok':scores[idx]>0?'part':'bad';
+  const msg=scores[idx]===q.pts?q.fb.ok:q.fb.bad;
+  fb.textContent=msg; fb.className='fb '+cls; fb.style.display='block';
+
+  if(q.type==='choice'){
+    const sel=userAns[idx];
+    document.querySelectorAll('.ch').forEach(c=>{
+      c.classList.add('locked');
+      const ci=parseInt(c.dataset.ci);
+      if(ci===q.correct) c.classList.add('ok');
+      else if(ci===sel) c.classList.add('bad');
+    });
+  }else if(q.type==='hotspot'){
+    const sel=userAns[idx];
+    document.querySelectorAll('.hs-line').forEach(l=>{
+      l.classList.add('locked');
+      const li=parseInt(l.dataset.li);
+      if(li===q.correct) l.classList.add('ok');
+      else if(li===sel)  l.classList.add('bad');
+    });
+  }else if(q.type==='selectall'){
+    const selArr=userAns[idx]||[];
+    document.querySelectorAll('.sa-item').forEach(item=>{
+      item.classList.add('locked');
+      const oi=parseInt(item.dataset.oi);
+      if(q.correct.includes(oi)) item.classList.add('ok');
+      else if(selArr.includes(oi)) item.classList.add('bad');
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  NAV & PROGRESS
+// ════════════════════════════════════════════════════════
+function updateNav(idx){
+  document.getElementById('btnBack').disabled=idx===0;
+  if(answered[idx]){
+    document.getElementById('btnCheck').style.display='none';
+    document.getElementById('btnNext').style.display=idx<Q.length-1?'inline-block':'none';
+  } else {
+    document.getElementById('btnCheck').style.display='inline-block';
+    document.getElementById('btnCheck').disabled=!canCheck(idx);
+    document.getElementById('btnNext').style.display='none';
+  }
+  checkSubmitVis();
+}
+function canCheck(idx){
+  const a=userAns[idx];
+  if(a===null||a===undefined) return false;
+  if(Array.isArray(a)) return a.length>0;
+  if(typeof a==='object') return Object.values(a).filter(v=>v!==null).length===Q[idx].pairs.length;
+  return true;
+}
+function checkSubmitVis(){
+  // Show submit only once the final question (Q35) has been answered
+  if(answered[34]) document.getElementById('btnSubmit').classList.add('vis');
+}
+function goNext(){ if(currentQ<Q.length-1) renderQ(currentQ+1); }
+function goBack(){ if(currentQ>0) renderQ(currentQ-1); }
+function updateProgress(){
+  const done=answered.filter(Boolean).length;
+  document.getElementById('progLbl').textContent='Question '+(currentQ+1)+' of 35';
+  document.getElementById('progBar').style.width=((done/35)*100)+'%';
+}
+
+// ════════════════════════════════════════════════════════
+//  SUBMIT
+// ════════════════════════════════════════════════════════
+function confirmSubmit(){
+  const rem=20-answered.filter(Boolean).length;
+  if(rem>0&&!confirm('You have '+rem+' unanswered question'+(rem>1?'s':'')+' remaining. Submit now? Unanswered questions score 0.')) return;
+  showResults();
+}
+function showResults(){
+  const total=scores.reduce((a,b)=>a+b,0);
+  showScreen('resultsScreen');
+  document.getElementById('finalScore').textContent=total;
+  const arc=document.getElementById('scoreArc');
+  arc.style.strokeDashoffset=358-(total/100)*358;
+  const bands=[
+    {min:88,lbl:'Thinking Like a Programmer',desc:'Outstanding! You can write Python, think computationally, and use AI as a genuine learning tool.'},
+    {min:68,lbl:'Connecting the Dots',desc:'Great work! You can read and predict Python programs, think through problems, and understand responsible AI use.'},
+    {min:45,lbl:'Finding My Feet',desc:'Good effort! You know several key ideas across all three sections — keep practising to connect them.'},
+    {min:0, lbl:'Getting Started',desc:'You\'re building your foundations — review the basics across all three sections and give it another go!'}
+  ];
+  const band=bands.find(b=>total>=b.min);
+  document.getElementById('bandLbl').textContent=band.lbl;
+  document.getElementById('bandDesc').textContent=band.desc;
+}
+
+// ════════════════════════════════════════════════════════
+//  PDF
+// ════════════════════════════════════════════════════════
+function downloadPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210, M=18;
+  let y=20;
+  const total=scores.reduce((a,b)=>a+b,0);
+
+  // Header band
+  doc.setFillColor(26,14,46); doc.rect(0,0,W,36,'F');
+  doc.setFontSize(17); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text('Code Sense — Stage 4 Software Engineering',M,15);
+  doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(190,165,255);
+  doc.text('Vorm Education  ·  Year 7 Procedural Python',M,22);
+  doc.text('Generated: '+new Date().toLocaleString('en-AU',{timeZone:'Australia/Sydney'}),M,28);
+  doc.text('Student: '+studentEmail,M,34);
+
+  y=46;
+  // Score box
+  doc.setFillColor(238,230,255); doc.roundedRect(M,y,W-2*M,22,3,3,'F');
+  doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.setTextColor(45,27,78);
+  doc.text(total+' / 100',M+7,y+9);
+  const band=document.getElementById('bandLbl').textContent;
+  const desc=document.getElementById('bandDesc').textContent;
+  doc.setFontSize(9.5); doc.text(band,M+7,y+15.5);
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(90,70,130);
+  const descLines=doc.splitTextToSize(desc,W-2*M-14);
+  doc.text(descLines,M+7,y+20);
+  y+=28;
+
+  // Section breakdown
+  const secInfo={
+    A:{name:'Section A — Python Syntax',       col:[255,61,127]},
+    B:{name:'Section B — Computational Thinking', col:[78,201,110]},
+    C:{name:'Section C — AI & Ethics',         col:[242,172,39]}
+  };
+  const secTotals={A:{g:0,m:0},B:{g:0,m:0},C:{g:0,m:0}};
+  Q.forEach((q,i)=>{ const s=q.section||'A'; secTotals[s].g+=scores[i]; secTotals[s].m+=q.pts; });
+
+  doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(45,27,78);
+  doc.text('Score by Section',M,y); y+=5;
+  Object.keys(secTotals).forEach(sec=>{
+    const s=secTotals[sec], pct=s.m>0?s.g/s.m:0, info=secInfo[sec];
+    doc.setFillColor(info.col[0],info.col[1],info.col[2],20);
+    doc.roundedRect(M,y,W-2*M,8,2,2,'F');
+    doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(45,27,78);
+    doc.text(info.name,M+3,y+5.5);
+    doc.setFont('helvetica','normal');
+    doc.text(s.g+' / '+s.m+' pts',W-M-18,y+5.5);
+    doc.setFillColor(210,200,235); doc.rect(M+90,y+2.5,45,3,'F');
+    doc.setFillColor(...info.col); doc.rect(M+90,y+2.5,45*pct,3,'F');
+    y+=10;
+  });
+  y+=4;
+
+  // SOLO breakdown
+  const soloInfo={
+    uni:{name:'Getting Started',     col:[78,201,110]},
+    multi:{name:'Finding My Feet',   col:[84,184,255]},
+    rel:{name:'Connecting the Dots', col:[242,172,39]},
+    ext:{name:'Thinking Like a Programmer',col:[255,61,127]}
+  };
+  const soloTotals={uni:{g:0,m:0},multi:{g:0,m:0},rel:{g:0,m:0},ext:{g:0,m:0}};
+  Q.forEach((q,i)=>{ soloTotals[q.solo].g+=scores[i]; soloTotals[q.solo].m+=q.pts; });
+
+  doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(45,27,78);
+  doc.text('Score by Level',M,y); y+=5;
+  Object.keys(soloTotals).forEach(solo=>{
+    const s=soloTotals[solo], pct=s.m>0?s.g/s.m:0, info=soloInfo[solo];
+    doc.setFillColor(info.col[0],info.col[1],info.col[2],25);
+    doc.roundedRect(M,y,W-2*M,8,2,2,'F');
+    doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(45,27,78);
+    doc.text(info.name,M+3,y+5.5);
+    doc.setFont('helvetica','normal');
+    doc.text(s.g+' / '+s.m+' pts',W-M-18,y+5.5);
+    doc.setFillColor(210,200,235); doc.rect(M+72,y+2.5,55,3,'F');
+    doc.setFillColor(...info.col); doc.rect(M+72,y+2.5,55*pct,3,'F');
+    y+=10;
+  });
+  y+=4;
+
+  // Per-question table
+  doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(45,27,78);
+  doc.text('Question Breakdown',M,y); y+=5;
+  doc.setFillColor(45,27,78); doc.rect(M,y,W-2*M,6.5,'F');
+  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text('Q',M+2,y+4.5); doc.text('Question Summary',M+10,y+4.5);
+  doc.text('Level',M+100,y+4.5); doc.text('Max',M+128,y+4.5);
+  doc.text('Got',M+141,y+4.5); doc.text('Result',M+153,y+4.5);
+  y+=6.5;
+
+  Q.forEach((q,i)=>{
+    if(y>268){doc.addPage();y=18;}
+    doc.setFillColor(i%2===0?246:255,i%2===0?242:255,255);
+    doc.rect(M,y,W-2*M,6.5,'F');
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(45,27,78);
+    doc.text(String(i+1),M+2,y+4.5);
+    const summary=q.text.replace(/\n.*/s,'').substring(0,52)+(q.text.length>52?'…':'');
+    doc.text(summary,M+10,y+4.5);
+    doc.text(soloInfo[q.solo].name.substring(0,16),M+100,y+4.5);
+    doc.text(String(q.pts),M+129,y+4.5);
+    doc.text(String(scores[i]),M+142,y+4.5);
+    const status=!answered[i]?'Skipped':scores[i]===q.pts?'Full marks':scores[i]>0?'Partial':'Incorrect';
+    const scol=!answered[i]?[160,160,160]:scores[i]===q.pts?[0,140,50]:scores[i]>0?[170,120,0]:[190,40,40];
+    doc.setTextColor(...scol); doc.setFont('helvetica','bold');
+    doc.text(status,M+153,y+4.5);
+    y+=6.5;
+  });
+
+  y+=8;
+  if(y>260){doc.addPage();y=18;}
+  doc.setFillColor(26,14,46); doc.rect(M,y,W-2*M,12,'F');
+  doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(190,165,255);
+  doc.text('This PDF was generated in your browser. No data was sent to any server.',M+3,y+5);
+  doc.text('Vorm Education  ·  Code Sense  ·  Stage 4 Software Engineering',M+3,y+10);
+
+  doc.save('Code_Sense_'+studentEmail.split('@')[0]+'_'+new Date().toISOString().slice(0,10)+'.pdf');
+  studentEmail='(downloaded)';
+}
+
+// ════════════════════════════════════════════════════════
+//  COMPLETION CELEBRATION
+// ════════════════════════════════════════════════════════
+function showCompletion(){
+  const total=scores.reduce((a,b)=>a+b,0);
+  document.getElementById('compScore').textContent=total;
+  const bands=[
+    {min:88,lbl:'Thinking Like a Programmer'},
+    {min:68,lbl:'Connecting the Dots'},
+    {min:45,lbl:'Finding My Feet'},
+    {min:0, lbl:'Getting Started'}
+  ];
+  const band=bands.find(b=>total>=b.min);
+  document.getElementById('compBand').textContent=band.lbl;
+  document.getElementById('completionOverlay').classList.add('show');
+  launchConfetti();
+}
+
+function submitFromCompletion(){
+  document.getElementById('completionOverlay').classList.remove('show');
+  showResults();
+}
+
+// ── Confetti engine ──────────────────────────────────────
+function launchConfetti(){
+  const canvas=document.getElementById('confettiCanvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  const colours=['#ff3d7f','#7c4daa','#f2ac27','#4ec9b0','#ffffff','#54b8ff','#ff6b6b'];
+  const particles=[];
+  const count=180;
+  for(let i=0;i<count;i++){
+    particles.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height-canvas.height,
+      w:Math.random()*10+5,
+      h:Math.random()*5+3,
+      colour:colours[Math.floor(Math.random()*colours.length)],
+      rot:Math.random()*360,
+      rotSpeed:(Math.random()-0.5)*6,
+      vx:(Math.random()-0.5)*3,
+      vy:Math.random()*4+2,
+      opacity:1
+    });
+  }
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      ctx.save();
+      ctx.translate(p.x+p.w/2,p.y+p.h/2);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.globalAlpha=p.opacity;
+      ctx.fillStyle=p.colour;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+      p.x+=p.vx;
+      p.y+=p.vy;
+      p.rot+=p.rotSpeed;
+      if(frame>120) p.opacity-=0.012;
+    });
+    frame++;
+    if(frame<220) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+</script>
+</body>
+</html>
