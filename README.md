@@ -127,6 +127,8 @@ Both `python_quiz_vorm_v3.html` and `quiz.js` must be in the **same directory**.
 
 This quiz requires no server, no build step, and no internet connection beyond the initial CDN asset load (Semantic UI, jsPDF, Google Fonts).
 
+`index.html` is a copy of `python_quiz_vorm_v3.html` purly for the purpose of using GitHub pages.
+
 **To distribute to students:**
 
 1. Copy both `python_quiz_vorm_v3.html` and `quiz.js` to a shared drive, USB, or Google Classroom attachment
